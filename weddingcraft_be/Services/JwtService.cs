@@ -1,46 +1,57 @@
-﻿
-using System.IdentityModel.Tokens.Jwt;
+﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using weddingcraft_be.Models;
 
-namespace WeddingCraft.Api.Services;
+namespace weddingcraft_be.Services;
+
+public class JwtSettings
+{
+    public string Secret { get; set; } = null!;
+    public int AccessTokenMinutes { get; set; } = 15;
+    public int RefreshTokenDays { get; set; } = 7;
+}
 
 public interface IJwtService
 {
-    string GenerateToken(User user);
+    string GenerateAccessToken(User user);
+    (string token, DateTime expiresAt) GenerateRefreshToken();
 }
 
 public class JwtService : IJwtService
 {
-    private readonly IConfiguration _config;
+    private readonly JwtSettings _settings;
+    public JwtService(IOptions<JwtSettings> opts) => _settings = opts.Value;
 
-    public JwtService(IConfiguration config)
+    public string GenerateAccessToken(User user)
     {
-        _config = config;
-    }
-
-    public string GenerateToken(User user)
-    {
-        var secret = _config["JwtSettings:Secret"]!;
-        var expiry = int.Parse(_config["JwtSettings:ExpiryMinutes"] ?? "60");
-
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Role, user.Role)
+            new Claim(ClaimTypes.Role, user.Role ?? "Customer")
         };
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(expiry),
-            signingCredentials: creds);
+            expires: DateTime.UtcNow.AddMinutes(_settings.AccessTokenMinutes),
+            signingCredentials: creds
+        );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    public (string token, DateTime expiresAt) GenerateRefreshToken()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(64);
+        var token = Convert.ToBase64String(bytes);
+        var expires = DateTime.UtcNow.AddDays(_settings.RefreshTokenDays);
+        return (token, expires);
     }
 }

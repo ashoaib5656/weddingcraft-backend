@@ -21,6 +21,7 @@ public class AiController : ControllerBase
         _db = db; _http = http; _config = config;
     }
 
+    [AllowAnonymous]
     [HttpPost("design")]
     public async Task<IActionResult> Design(DesignRequestDto dto)
     {

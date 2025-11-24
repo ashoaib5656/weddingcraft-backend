@@ -13,5 +13,8 @@ namespace weddingcraft_be.Data
         public DbSet<Order> Orders => Set<Order>();
         public DbSet<OrderItem> OrderItems => Set<OrderItem>();
         public DbSet<AiRequest> AiRequests => Set<AiRequest>();
+        public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+        public DbSet<LogEntry> Logs => Set<LogEntry>();
+
     }
 }
