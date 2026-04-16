@@ -10,10 +10,12 @@ namespace weddingcraft_be.Models
         [Required, EmailAddress]
         public string Email { get; set; } = null!;
 
+        public string? PasswordHash { get; set; }
+        
         [Required]
-        public string PasswordHash { get; set; } = null!;
-
         public string Role { get; set; } = "Customer";
+
+        public string? PhoneNumber { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

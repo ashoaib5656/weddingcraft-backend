@@ -1,61 +1,71 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Serilog;
 using System.Text;
 using weddingcraft_be.Data;
 using weddingcraft_be.Middleware;
 using weddingcraft_be.Models;
 using weddingcraft_be.Services;
+using weddingcraft_be.Interfaces.Services;
+using weddingcraft_be.Interfaces.Repositories;
+using weddingcraft_be.Repositories;
+using weddingcraft_be.Common.Helpers;
 using Microsoft.AspNetCore.Identity;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Serilog
-
-var configuration = builder.Configuration;
+// ─── Serilog ────────────────────────────────────────────────────────────────
 
 Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(configuration)    
+    .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
     .Enrich.WithMachineName()
-    .WriteTo.Console()
-    .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 14)
     .CreateLogger();
 
 builder.Host.UseSerilog();
 
-
-builder.Host.UseSerilog();
+// ─── Database ────────────────────────────────────────────────────────────────
 
 builder.Services.AddDbContext<ApplicationDbContext>(opts =>
     opts.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// identity/password hasher
+// ─── Repositories ────────────────────────────────────────────────────────────
+
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+
+// ─── Redis ───────────────────────────────────────────────────────────────────
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration["Redis:Configuration"];
+    options.InstanceName = "WeddingCraft";
+});
+
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var redisConfig = builder.Configuration["Redis:Configuration"]
+        ?? throw new InvalidOperationException("Redis:Configuration is not configured.");
+    var mux = ConnectionMultiplexer.Connect(redisConfig);
+    Log.Information("Redis connected: {IsConnected}", mux.IsConnected);
+    return mux;
+});
+
+builder.Services.AddScoped<IRedisService, RedisService>();
+
+// ─── Identity / JWT ──────────────────────────────────────────────────────────
+
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
-// jwt settings
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 builder.Services.AddSingleton<IJwtService, JwtService>();
 
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddHttpClient();
-builder.Services.AddScoped<IEmailService, EmailService>();
-
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-builder.Services.AddCors(opt =>
-{
-    opt.AddPolicy("default", p =>
-        p.AllowAnyHeader().AllowAnyMethod().AllowCredentials()
-         .WithOrigins(builder.Configuration["FrontendUrl"] ?? "http://localhost:5173"));
-});
-
-// Authentication
 var jwtSecret = builder.Configuration["JwtSettings:Secret"];
-if (string.IsNullOrEmpty(jwtSecret)) throw new Exception("JWT secret not configured.");
+if (string.IsNullOrEmpty(jwtSecret))
+    throw new InvalidOperationException("JwtSettings:Secret is not configured.");
 
 builder.Services.AddAuthentication(options =>
 {
@@ -74,9 +84,60 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// ─── Application Services ────────────────────────────────────────────────────
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+// ─── SignalR ─────────────────────────────────────────────────────────────────
+
+builder.Services.AddSignalR();
+
+// ─── Controllers / API ───────────────────────────────────────────────────────
+
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "WeddingCraft API", Version = "v1" });
+
+    var securityScheme = new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Description = "Enter: Bearer {your JWT token}",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+    };
+
+    c.AddSecurityDefinition("Bearer", securityScheme);
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        { securityScheme, Array.Empty<string>() }
+    });
+});
+
+// ─── CORS ────────────────────────────────────────────────────────────────────
+
+builder.Services.AddCors(opt =>
+{
+    opt.AddPolicy("default", p =>
+        p.AllowAnyHeader()
+         .AllowAnyMethod()
+         .AllowCredentials()
+         .WithOrigins(builder.Configuration["FrontendUrl"] ?? "http://localhost:5173"));
+});
+
+// ─── Build ───────────────────────────────────────────────────────────────────
+
 var app = builder.Build();
 
-// Migrate & seed
+// ─── Auto-migrate & Seed ─────────────────────────────────────────────────────
+
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -87,12 +148,11 @@ using (var scope = app.Services.CreateScope())
     SeedData.Initialize(db, hasher, config);
 }
 
-// Middleware
+// ─── Middleware Pipeline ──────────────────────────────────────────────────────
+
 app.UseSerilogRequestLogging();
-app.UseMiddleware<weddingcraft_be.Middleware.RequestLoggingEnricherMiddleware>();
-
+app.UseMiddleware<RequestLoggingEnricherMiddleware>();
 app.UseMiddleware<ErrorHandlerMiddleware>();
-
 
 if (app.Environment.IsDevelopment())
 {
@@ -103,5 +163,8 @@ if (app.Environment.IsDevelopment())
 app.UseCors("default");
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHub<weddingcraft_be.Hubs.ChatHub>("/hubs/chat");
 app.MapControllers();
+
 app.Run();

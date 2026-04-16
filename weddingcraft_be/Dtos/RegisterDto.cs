@@ -1,8 +1,17 @@
-﻿namespace weddingcraft_be.Dtos
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace weddingcraft_be.Dtos
 {
     public class RegisterDto
     {
-        public string Email { get; set; } = "";
-        public string Password { get; set; } = "";
+        [Required, EmailAddress]
+        public string Email { get; set; } = null!;
+
+        [Required, MinLength(6)]
+        public string Password { get; set; } = null!;
+
+        // Customer registration must include phone
+        [Phone]
+        public string? PhoneNumber { get; set; }
     }
 }

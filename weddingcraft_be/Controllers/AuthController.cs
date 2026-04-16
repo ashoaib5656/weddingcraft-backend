@@ -1,10 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using weddingcraft_be.Data;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using weddingcraft_be.Dtos;
-using weddingcraft_be.Models;
-using weddingcraft_be.Services;
+using weddingcraft_be.Interfaces.Services;
 
 namespace weddingcraft_be.Controllers;
 
@@ -12,97 +9,89 @@ namespace weddingcraft_be.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private readonly ApplicationDbContext _db;
-    private readonly IPasswordHasher<User> _hasher;
-    private readonly IJwtService _jwt;
-    private readonly IHttpContextAccessor _httpCtx;
+    private readonly IAuthService _authService;
 
-    public AuthController(ApplicationDbContext db, IPasswordHasher<User> hasher, IJwtService jwt, IHttpContextAccessor httpCtx)
+    public AuthController(IAuthService authService)
     {
-        _db = db;
-        _hasher = hasher;
-        _jwt = jwt;
-        _httpCtx = httpCtx;
+        _authService = authService;
     }
 
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
-        if (await _db.Users.AnyAsync(u => u.Email == dto.Email)) return BadRequest(new { error = "Email already registered" });
-
-        var user = new User { Email = dto.Email, Role = "Customer" };
-        user.PasswordHash = _hasher.HashPassword(user, dto.Password);
-        _db.Users.Add(user);
-        await _db.SaveChangesAsync();
-
-        var access = _jwt.GenerateAccessToken(user);
-        var (refreshToken, refreshExpires) = _jwt.GenerateRefreshToken();
-
-        var rt = new RefreshToken { Token = refreshToken, UserId = user.Id, ExpiresAt = refreshExpires, CreatedByIp = GetIp() };
-        _db.RefreshTokens.Add(rt);
-        await _db.SaveChangesAsync();
-
-        return Ok(new AuthResultDto { AccessToken = access, RefreshToken = refreshToken, ExpiresAt = DateTime.UtcNow.AddMinutes(_jwt is null ? 15 : 15) });
+        var result = await _authService.RegisterAsync(dto, GetIp());
+        return Ok(result);
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
-        if (user == null) return Unauthorized();
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+        var result = await _authService.LoginAsync(dto, GetIp());
+        return Ok(result);
+    }
 
-        var res = _hasher.VerifyHashedPassword(user, user.PasswordHash, dto.Password);
-        if (res == PasswordVerificationResult.Failed) return Unauthorized();
-
-        var access = _jwt.GenerateAccessToken(user);
-        var (refreshToken, refreshExpires) = _jwt.GenerateRefreshToken();
-
-        var rt = new RefreshToken { Token = refreshToken, UserId = user.Id, ExpiresAt = refreshExpires, CreatedByIp = GetIp() };
-        _db.RefreshTokens.Add(rt);
-        await _db.SaveChangesAsync();
-
-        return Ok(new AuthResultDto { AccessToken = access, RefreshToken = refreshToken, ExpiresAt = DateTime.UtcNow.AddMinutes(15) });
+    [HttpPost("create-user")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> CreateUser([FromBody] CreateUserDto dto)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+        var result = await _authService.CreateUserAsync(dto);
+        return Ok(new { success = true, role = result.Role });
     }
 
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh([FromBody] RefreshRequestDto req)
     {
-        var stored = await _db.RefreshTokens.Include(r => r.User).SingleOrDefaultAsync(r => r.Token == req.RefreshToken);
-        if (stored == null || !stored.IsActive) return Unauthorized();
-
-        stored.RevokedAt = DateTime.UtcNow;
-        stored.RevokedByIp = GetIp();
-
-        var (newToken, newExpires) = _jwt.GenerateRefreshToken();
-        stored.ReplacedByToken = newToken;
-        _db.RefreshTokens.Add(new RefreshToken
-        {
-            Token = newToken,
-            UserId = stored.UserId,
-            ExpiresAt = newExpires,
-            CreatedByIp = GetIp()
-        });
-
-        await _db.SaveChangesAsync();
-
-        var access = _jwt.GenerateAccessToken(stored.User);
-        return Ok(new AuthResultDto { AccessToken = access, RefreshToken = newToken, ExpiresAt = DateTime.UtcNow.AddMinutes(15) });
+        var result = await _authService.RefreshAsync(req.RefreshToken, GetIp());
+        return Ok(result);
     }
 
     [HttpPost("revoke")]
     public async Task<IActionResult> Revoke([FromBody] RefreshRequestDto req)
     {
-        var stored = await _db.RefreshTokens.SingleOrDefaultAsync(r => r.Token == req.RefreshToken);
-        if (stored == null) return NotFound();
-        stored.RevokedAt = DateTime.UtcNow;
-        stored.RevokedByIp = GetIp();
-        await _db.SaveChangesAsync();
+        await _authService.RevokeAsync(req.RefreshToken, GetIp());
         return NoContent();
     }
 
-    private string GetIp()
+    [HttpPost("send-otp")]
+    public async Task<IActionResult> SendOtp([FromBody] SendOtpRequest request)
     {
-        return _httpCtx.HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "unknown";
+        await _authService.SendOtpAsync(request.Email);
+        return Ok(new { message = "OTP sent successfully." });
     }
+
+    [HttpPost("verify-otp")]
+    public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequest request)
+    {
+        await _authService.VerifyOtpAsync(request.Email, request.Otp);
+        return Ok(new { message = "OTP verified successfully." });
+    }
+
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] SendOtpRequest request)
+    {
+        await _authService.SendPasswordResetOtpAsync(request.Email);
+        return Ok(new { message = "Password reset OTP sent successfully." });
+    }
+
+    [HttpPost("verify-password-reset-otp")]
+    public async Task<IActionResult> VerifyPasswordResetOtp([FromBody] VerifyOtpRequest request)
+    {
+        await _authService.VerifyPasswordResetOtpAsync(request.Email, request.Otp);
+        return Ok(new { message = "OTP verified successfully." });
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+    {
+        await _authService.ResetPasswordAsync(request.Email, request.NewPassword);
+        return Ok(new { message = "Password reset successfully." });
+    }
+
+    // ─── Helper ───────────────────────────────────────────────────────────────
+
+    private string GetIp() =>
+        HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 }

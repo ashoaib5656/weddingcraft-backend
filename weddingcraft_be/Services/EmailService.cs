@@ -1,9 +1,8 @@
-﻿using MailKit.Net.Smtp;
+using MailKit.Net.Smtp;
 using MimeKit;
+using weddingcraft_be.Interfaces.Services;
 
 namespace weddingcraft_be.Services;
-
-public interface IEmailService { Task SendAsync(string to, string subject, string html); }
 
 public class EmailService : IEmailService
 {
@@ -24,5 +23,21 @@ public class EmailService : IEmailService
             await client.AuthenticateAsync(_cfg["Smtp:User"], _cfg["Smtp:Pass"]);
         await client.SendAsync(msg);
         await client.DisconnectAsync(true);
+    }
+
+    public async Task SendOtpAsync(string to, string otp)
+    {
+        var subject = "Your WeddsPot OTP Code";
+        var html = $@"
+                <div style='font-family: Arial, sans-serif'>
+                    <h2>WeddsPot Verification</h2>
+                    <p>Your One-Time Password (OTP) is:</p>
+                    <h1 style='letter-spacing: 4px'>{otp}</h1>
+                    <p>This OTP is valid for <b>5 minutes</b>.</p>
+                    <p>If you did not request this, please ignore this email.</p>
+                </div>";
+
+        await SendAsync(to, subject, html);
+
     }
 }

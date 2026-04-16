@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using weddingcraft_be.Data;
@@ -11,9 +12,11 @@ using weddingcraft_be.Data;
 namespace weddingcraft_be.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251128050708_AddUserRoleAndPhone")]
+    partial class AddUserRoleAndPhone
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -79,9 +82,6 @@ namespace weddingcraft_be.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CreatedAt")
-                        .HasDatabaseName("IX_ChatMessages_CreatedAt");
 
                     b.ToTable("chat_messages", "public");
                 });
@@ -158,9 +158,6 @@ namespace weddingcraft_be.Migrations
                         .HasColumnName("useremail");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Timestamp")
-                        .HasDatabaseName("IX_Logs_Timestamp");
 
                     b.ToTable("logs", "public");
                 });
@@ -283,12 +280,7 @@ namespace weddingcraft_be.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Token")
-                        .IsUnique()
-                        .HasDatabaseName("IX_RefreshTokens_Token");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("IX_RefreshTokens_UserId");
+                    b.HasIndex("UserId");
 
                     b.ToTable("RefreshTokens");
                 });
@@ -317,10 +309,6 @@ namespace weddingcraft_be.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Email")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Users_Email");
 
                     b.ToTable("Users");
                 });

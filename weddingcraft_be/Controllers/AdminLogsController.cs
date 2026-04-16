@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using weddingcraft_be.Data;
@@ -19,6 +19,7 @@ public class AdminLogsController : ControllerBase
     {
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 25;
+        if (pageSize > 100) pageSize = 100;
 
         var q = _db.Logs.AsQueryable();
 
