@@ -31,6 +31,7 @@ public class ChatController : ControllerBase
                 m.Id,
                 m.UserId,
                 m.UserEmail,
+                m.ConversationId,
                 m.Message,
                 m.CreatedAt
             })

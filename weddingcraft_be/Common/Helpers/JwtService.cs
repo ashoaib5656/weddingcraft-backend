@@ -49,4 +49,30 @@ public class JwtService : IJwtService
         var expires = DateTime.UtcNow.AddDays(_settings.RefreshTokenDays);
         return (token, expires);
     }
+
+    public ClaimsPrincipal? ValidateToken(string token)
+    {
+        if (string.IsNullOrEmpty(token)) return null;
+
+        var handler = new JwtSecurityTokenHandler();
+        var key = Encoding.UTF8.GetBytes(_settings.Secret);
+
+        try
+        {
+            var principal = handler.ValidateToken(token, new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ClockSkew = TimeSpan.Zero
+            }, out _);
+
+            return principal;
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }

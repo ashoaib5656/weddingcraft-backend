@@ -1,4 +1,5 @@
-﻿using weddingcraft_be.Models;
+using System.Security.Claims;
+using weddingcraft_be.Models;
 
 namespace weddingcraft_be.Interfaces.Services
 {
@@ -6,5 +7,6 @@ namespace weddingcraft_be.Interfaces.Services
     {
         string GenerateAccessToken(User user);
         (string token, DateTime expiresAt) GenerateRefreshToken();
+        ClaimsPrincipal? ValidateToken(string token);
     }
 }

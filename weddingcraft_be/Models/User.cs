@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace weddingcraft_be.Models
 {
@@ -10,6 +10,8 @@ namespace weddingcraft_be.Models
         [Required, EmailAddress]
         public string Email { get; set; } = null!;
 
+        public string? Name { get; set; }
+
         public string? PasswordHash { get; set; }
         
         [Required]
@@ -17,7 +19,19 @@ namespace weddingcraft_be.Models
 
         public string? PhoneNumber { get; set; }
 
+        public string Status { get; set; } = "Active";
+
+        public string? Location { get; set; }
+
+        public string? Category { get; set; } // For Vendors
+
+        public string? Department { get; set; } // For Staff
+
+        public double Rating { get; set; } = 0.0;
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public DateTime? LastSeen { get; set; }
 
         public List<Order> Orders { get; set; } = new();
 

@@ -14,6 +14,7 @@ using weddingcraft_be.Repositories;
 using weddingcraft_be.Common.Helpers;
 using Microsoft.AspNetCore.Identity;
 using StackExchange.Redis;
+using weddingcraft_be.Models.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +28,13 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
+// ─── Options Pattern ─────────────────────────────────────────────────────────
+
+builder.Services.Configure<RedisSettings>(builder.Configuration.GetSection("Redis"));
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
+builder.Services.Configure<GeminiSettings>(builder.Configuration.GetSection("Gemini"));
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
+
 // ─── Database ────────────────────────────────────────────────────────────────
 
 builder.Services.AddDbContext<ApplicationDbContext>(opts =>
@@ -36,6 +44,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(opts =>
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
+builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 
 // ─── Redis ───────────────────────────────────────────────────────────────────
 
@@ -60,7 +73,6 @@ builder.Services.AddScoped<IRedisService, RedisService>();
 
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
-builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 builder.Services.AddSingleton<IJwtService, JwtService>();
 
 var jwtSecret = builder.Configuration["JwtSettings:Secret"];
@@ -90,6 +102,12 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<IInventoryService, InventoryService>();
+builder.Services.AddScoped<ITaskService, TaskService>();
+builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 
 // ─── SignalR ─────────────────────────────────────────────────────────────────
 

@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Options;
+using weddingcraft_be.Models.Configuration;
 using MailKit.Net.Smtp;
 using MimeKit;
 using weddingcraft_be.Interfaces.Services;
@@ -6,21 +8,21 @@ namespace weddingcraft_be.Services;
 
 public class EmailService : IEmailService
 {
-    private readonly IConfiguration _cfg;
-    public EmailService(IConfiguration cfg) => _cfg = cfg;
+    private readonly SmtpSettings _settings;
+    public EmailService(IOptions<SmtpSettings> options) => _settings = options.Value;
 
     public async Task SendAsync(string to, string subject, string html)
     {
         var msg = new MimeMessage();
-        msg.From.Add(MailboxAddress.Parse(_cfg["Smtp:From"] ?? "no-reply@example.com"));
+        msg.From.Add(MailboxAddress.Parse(_settings.From));
         msg.To.Add(MailboxAddress.Parse(to));
         msg.Subject = subject;
         msg.Body = new TextPart("html") { Text = html };
 
         using var client = new SmtpClient();
-        await client.ConnectAsync(_cfg["Smtp:Host"], int.Parse(_cfg["Smtp:Port"] ?? "587"), false);
-        if (!string.IsNullOrEmpty(_cfg["Smtp:User"]))
-            await client.AuthenticateAsync(_cfg["Smtp:User"], _cfg["Smtp:Pass"]);
+        await client.ConnectAsync(_settings.Host, _settings.Port, false);
+        if (!string.IsNullOrEmpty(_settings.User))
+            await client.AuthenticateAsync(_settings.User, _settings.Pass);
         await client.SendAsync(msg);
         await client.DisconnectAsync(true);
     }

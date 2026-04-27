@@ -10,6 +10,7 @@ public interface IAuthService
     Task<AuthResultDto> RefreshAsync(string refreshToken, string ipAddress);
     Task RevokeAsync(string refreshToken, string ipAddress);
     Task<AuthResultDto> CreateUserAsync(CreateUserDto dto);
+    Task<AuthResultDto> VerifyTokenAsync(string token);
 
     // ─── OTP ─────────────────────────────────────────────────────────────────
     Task SendOtpAsync(string email);

@@ -13,5 +13,7 @@ namespace weddingcraft_be.Dtos
         // Customer registration must include phone
         [Phone]
         public string? PhoneNumber { get; set; }
+
+        public string? Role { get; set; }
     }
 }

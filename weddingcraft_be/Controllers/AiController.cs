@@ -43,7 +43,7 @@ public class AiController : ControllerBase
         }
         };
 
-        string model = "gemini-2.5-flash";
+        string model = "gemini-1.5-flash";
 
         var resp = await client.PostAsJsonAsync(
             $"https://generativelanguage.googleapis.com/v1/models/{model}:generateContent?key={apiKey}",

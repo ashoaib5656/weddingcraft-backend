@@ -17,6 +17,24 @@ public static class SeedData
             );
         }
 
+        // ─── Inventory ────────────────────────────────────────────────────────
+        if (!context.InventoryItems.Any())
+        {
+            context.InventoryItems.AddRange(
+                new InventoryItem { Name = "Chair Covers", Category = "Decoration", Stock = 500, Price = 10, Status = "In Stock" },
+                new InventoryItem { Name = "Table Runners", Category = "Decoration", Stock = 100, Price = 15, Status = "In Stock" }
+            );
+        }
+
+        // ─── Tasks ────────────────────────────────────────────────────────────
+        if (!context.TaskItems.Any())
+        {
+            context.TaskItems.AddRange(
+                new TaskItem { Title = "Finalize Venue Contract", AssignedTo = "admin@weddingcraft.local", DueDate = DateTime.UtcNow.AddDays(7), Priority = "High", Status = "Pending" },
+                new TaskItem { Title = "Send Invitations", AssignedTo = "staff@weddingcraft.local", DueDate = DateTime.UtcNow.AddDays(14), Priority = "Medium", Status = "Pending" }
+            );
+        }
+
         // ─── Seeded Users (single source of truth from config) ───────────────
         SeedUser(context, hasher,
             email: config["Seed:AdminEmail"] ?? "admin@weddingcraft.local",

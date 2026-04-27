@@ -10,6 +10,9 @@ public interface IBaseRepository<T> where T : class
     Task<T?> SingleOrDefaultAsync(Expression<Func<T, bool>> predicate);
     Task<bool> AnyAsync(Expression<Func<T, bool>> predicate);
     
+    // Advanced Querying
+    IQueryable<T> GetQueryable();
+    
     Task AddAsync(T entity);
     void Update(T entity);
     void Remove(T entity);

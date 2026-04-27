@@ -48,6 +48,19 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("verify-token")]
+    public async Task<IActionResult> VerifyToken([FromBody] VerifyTokenRequest req)
+    {
+        var result = await _authService.VerifyTokenAsync(req.Token);
+        return Ok(result);
+    }
+
+    [HttpPost("logout")]
+    public IActionResult Logout()
+    {
+        return Ok(new { ok = true, message = "Logged out successfully" });
+    }
+
     [HttpPost("revoke")]
     public async Task<IActionResult> Revoke([FromBody] RefreshRequestDto req)
     {

@@ -16,6 +16,12 @@ public class ApplicationDbContext : DbContext
     public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<LogEntry> Logs => Set<LogEntry>();
+    public DbSet<Review> Reviews => Set<Review>();
+    public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
+    public DbSet<TaskItem> TaskItems => Set<TaskItem>();
+    public DbSet<Report> Reports => Set<Report>();
+    public DbSet<ContactMessage> ContactMessages => Set<ContactMessage>();
+    public DbSet<UserRequest> UserRequests => Set<UserRequest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

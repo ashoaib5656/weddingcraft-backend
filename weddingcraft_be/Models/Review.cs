@@ -1,11 +1,10 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace weddingcraft_be.Models
 {
-    [Table("chat_messages", Schema = "public")]
-    public class ChatMessage
+    [Table("reviews", Schema = "public")]
+    public class Review
     {
         [Key]
         [Column("id")]
@@ -13,17 +12,23 @@ namespace weddingcraft_be.Models
 
         [Required]
         [Column("user_id")]
-        public Guid? UserId { get; set; }  // nullable for anonymous
+        public Guid UserId { get; set; }
+
+        public User User { get; set; } = null!;
 
         [Column("user_email")]
         public string? UserEmail { get; set; }
 
-        [Column("conversation_id")]
-        public string? ConversationId { get; set; }
+        [Required]
+        [Column("rating")]
+        public int Rating { get; set; }
 
         [Required]
-        [Column("message")]
-        public string Message { get; set; } = null!;
+        [Column("comment")]
+        public string Comment { get; set; } = null!;
+
+        [Column("status")]
+        public string Status { get; set; } = "Pending";
 
         [Required]
         [Column("created_at")]

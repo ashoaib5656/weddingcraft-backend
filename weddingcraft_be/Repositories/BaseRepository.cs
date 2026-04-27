@@ -29,6 +29,8 @@ public abstract class BaseRepository<T> : IBaseRepository<T> where T : class
     public async Task<bool> AnyAsync(Expression<Func<T, bool>> predicate) 
         => await _dbSet.AnyAsync(predicate);
 
+    public IQueryable<T> GetQueryable() => _dbSet.AsQueryable();
+
     public async Task AddAsync(T entity) => await _dbSet.AddAsync(entity);
 
     public void Update(T entity) => _dbSet.Update(entity);

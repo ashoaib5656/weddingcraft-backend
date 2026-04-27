@@ -49,7 +49,7 @@ public class AuthService : IAuthService
         if (await _userRepo.AnyAsync(u => u.Email == dto.Email))
             throw new ConflictException("Email is already registered.");
 
-        var user = new User { Email = dto.Email, Role = "Customer", PhoneNumber = dto.PhoneNumber };
+        var user = new User { Email = dto.Email, Role = dto.Role ?? "Customer", PhoneNumber = dto.PhoneNumber };
         user.PasswordHash = _hasher.HashPassword(user, dto.Password);
         
         await _userRepo.AddAsync(user);
@@ -105,6 +105,7 @@ public class AuthService : IAuthService
             AccessToken = access,
             RefreshToken = newToken,
             Role = stored.User.Role,
+            Name = stored.User.Email.Split('@')[0],
             ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenMinutes)
         };
     }
@@ -128,13 +129,50 @@ public class AuthService : IAuthService
         if (await _userRepo.AnyAsync(u => u.Email == dto.Email))
             throw new ConflictException("Email is already registered.");
 
-        var user = new User { Email = dto.Email, Role = dto.Role, PhoneNumber = dto.PhoneNumber };
+        var user = new User 
+        { 
+            Email = dto.Email, 
+            Role = dto.Role, 
+            PhoneNumber = dto.PhoneNumber,
+            Name = dto.Name,
+            Status = dto.Status ? "Active" : "Inactive"
+        };
         user.PasswordHash = _hasher.HashPassword(user, dto.Password);
         
         await _userRepo.AddAsync(user);
         await _userRepo.SaveChangesAsync();
 
-        return new AuthResultDto { AccessToken = string.Empty, RefreshToken = string.Empty, Role = user.Role, ExpiresAt = DateTime.MinValue };
+        return new AuthResultDto 
+        { 
+            AccessToken = string.Empty, 
+            RefreshToken = string.Empty, 
+            Role = user.Role, 
+            Name = user.Name,
+            ExpiresAt = DateTime.MinValue 
+        };
+    }
+
+    public async Task<AuthResultDto> VerifyTokenAsync(string token)
+    {
+        var principal = _jwt.ValidateToken(token)
+            ?? throw new BadRequestException("Invalid token.");
+
+        var email = principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+            ?? throw new BadRequestException("Invalid token claims.");
+
+        var user = await _userRepo.GetByEmailAsync(email)
+            ?? throw new NotFoundException("User not found.");
+
+        return new AuthResultDto
+        {
+            Ok = true,
+            Message = "Token is valid",
+            AccessToken = token,
+            RefreshToken = string.Empty,
+            Role = user.Role,
+            Name = user.Email.Split('@')[0],
+            ExpiresAt = DateTime.UtcNow // Placeholder as we don't easily have the original expiry without parsing more
+        };
     }
 
     // ─── OTP ─────────────────────────────────────────────────────────────────
@@ -255,6 +293,7 @@ public class AuthService : IAuthService
             AccessToken = access,
             RefreshToken = refreshToken,
             Role = user.Role,
+            Name = user.Email.Split('@')[0],
             ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenMinutes)
         };
     }
