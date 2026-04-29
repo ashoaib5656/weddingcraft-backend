@@ -13,18 +13,26 @@ public class EmailService : IEmailService
 
     public async Task SendAsync(string to, string subject, string html)
     {
-        var msg = new MimeMessage();
-        msg.From.Add(MailboxAddress.Parse(_settings.From));
-        msg.To.Add(MailboxAddress.Parse(to));
-        msg.Subject = subject;
-        msg.Body = new TextPart("html") { Text = html };
+        try
+        {
+            var msg = new MimeMessage();
+            msg.From.Add(MailboxAddress.Parse(_settings.From));
+            msg.To.Add(MailboxAddress.Parse(to));
+            msg.Subject = subject;
+            msg.Body = new TextPart("html") { Text = html };
 
-        using var client = new SmtpClient();
-        await client.ConnectAsync(_settings.Host, _settings.Port, false);
-        if (!string.IsNullOrEmpty(_settings.User))
-            await client.AuthenticateAsync(_settings.User, _settings.Pass);
-        await client.SendAsync(msg);
-        await client.DisconnectAsync(true);
+            using var client = new SmtpClient();
+            await client.ConnectAsync(_settings.Host, _settings.Port, false);
+            if (!string.IsNullOrEmpty(_settings.User))
+                await client.AuthenticateAsync(_settings.User, _settings.Pass);
+            await client.SendAsync(msg);
+            await client.DisconnectAsync(true);
+        }
+        catch (Exception ex)
+        {
+            // Log or throw a cleaner message
+            throw new Exception("Failed to send email. Please check your SMTP configuration.", ex);
+        }
     }
 
     public async Task SendOtpAsync(string to, string otp)

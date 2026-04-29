@@ -14,17 +14,38 @@ namespace weddingcraft_be.Services
 
         public async Task SetAsync(string key, string value, TimeSpan? expiry = null)
         {
-            await _db.StringSetAsync(key, value, expiry, When.Always, CommandFlags.None);
+            try
+            {
+                await _db.StringSetAsync(key, value, expiry, When.Always, CommandFlags.None);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Redis service is currently unavailable.", ex);
+            }
         }
 
         public async Task<string?> GetAsync(string key)
         {
-            return await _db.StringGetAsync(key);
+            try
+            {
+                return await _db.StringGetAsync(key);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Redis service is currently unavailable.", ex);
+            }
         }
 
         public async Task RemoveAsync(string key)
         {
-            await _db.KeyDeleteAsync(key);
+            try
+            {
+                await _db.KeyDeleteAsync(key);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Redis service is currently unavailable.", ex);
+            }
         }
     }
 }

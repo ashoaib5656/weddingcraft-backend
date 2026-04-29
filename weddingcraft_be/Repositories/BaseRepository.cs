@@ -37,5 +37,20 @@ public abstract class BaseRepository<T> : IBaseRepository<T> where T : class
 
     public void Remove(T entity) => _dbSet.Remove(entity);
 
-    public async Task SaveChangesAsync() => await _db.SaveChangesAsync();
+    public async Task SaveChangesAsync()
+    {
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            throw new Exception("A database error occurred while saving changes.", ex);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("An unexpected error occurred in the database layer.", ex);
+        }
+    }
+
 }

@@ -52,19 +52,30 @@ builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 
 // ─── Redis ───────────────────────────────────────────────────────────────────
 
+var redisSettings = builder.Configuration.GetSection("Redis").Get<RedisSettings>() 
+    ?? throw new InvalidOperationException("Redis settings are not configured.");
+
 builder.Services.AddStackExchangeRedisCache(options =>
 {
-    options.Configuration = builder.Configuration["Redis:Configuration"];
+    options.Configuration = redisSettings.ToConnectionString();
     options.InstanceName = "WeddingCraft";
 });
 
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 {
-    var redisConfig = builder.Configuration["Redis:Configuration"]
-        ?? throw new InvalidOperationException("Redis:Configuration is not configured.");
-    var mux = ConnectionMultiplexer.Connect(redisConfig);
-    Log.Information("Redis connected: {IsConnected}", mux.IsConnected);
-    return mux;
+    try
+    {
+        var mux = ConnectionMultiplexer.Connect(redisSettings.ToConnectionString());
+        Log.Information("Redis connected: {IsConnected} to {Host}", mux.IsConnected, redisSettings.Host);
+        return mux;
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "Failed to connect to Redis at {Host}", redisSettings.Host);
+        // In production, you might want to return a mock or handle this differently
+        // For now, we allow it to throw or return a disconnected mux depending on requirements
+        throw; 
+    }
 });
 
 builder.Services.AddScoped<IRedisService, RedisService>();
