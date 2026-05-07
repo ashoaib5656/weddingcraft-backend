@@ -8,6 +8,7 @@ public class ApplicationDbContext : DbContext
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> opts) : base(opts) { }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<VendorProfile> VendorProfiles => Set<VendorProfile>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<CustomizationOption> CustomizationOptions => Set<CustomizationOption>();
     public DbSet<Order> Orders => Set<Order>();
@@ -21,7 +22,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<TaskItem> TaskItems => Set<TaskItem>();
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<ContactMessage> ContactMessages => Set<ContactMessage>();
-    public DbSet<UserRequest> UserRequests => Set<UserRequest>();
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -32,6 +33,27 @@ public class ApplicationDbContext : DbContext
             .HasIndex(u => u.Email)
             .IsUnique()
             .HasDatabaseName("IX_Users_Email");
+
+        // ─── VendorProfile (1-to-1 with User) ──────────────────────────────────
+        modelBuilder.Entity<VendorProfile>()
+            .HasOne(vp => vp.User)
+            .WithOne(u => u.VendorProfile)
+            .HasForeignKey<VendorProfile>(vp => vp.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // ─── Product (Many-to-1 with Vendor) ──────────────────────────────────
+        modelBuilder.Entity<Product>()
+            .HasOne(p => p.Vendor)
+            .WithMany(u => u.Products)
+            .HasForeignKey(p => p.VendorId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // ─── Order (Many-to-1 with Vendor) ───────────────────────────────────
+        modelBuilder.Entity<Order>()
+            .HasOne(o => o.Vendor)
+            .WithMany()
+            .HasForeignKey(o => o.VendorId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         // ─── RefreshToken ─────────────────────────────────────────────────────
         modelBuilder.Entity<RefreshToken>()

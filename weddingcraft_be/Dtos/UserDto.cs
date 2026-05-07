@@ -1,5 +1,13 @@
 namespace weddingcraft_be.Dtos
 {
+    public class VendorProfileDto
+    {
+        public string? Description { get; set; }
+        public string? ImageUrl { get; set; }
+        public string? PriceRange { get; set; }
+        public string? BusinessName { get; set; }
+    }
+
     public class UserDto
     {
         public Guid Id { get; set; }
@@ -14,5 +22,6 @@ namespace weddingcraft_be.Dtos
         public double Rating { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? LastSeen { get; set; }
+        public VendorProfileDto? VendorProfile { get; set; }
     }
 }

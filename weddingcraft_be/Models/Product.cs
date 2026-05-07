@@ -1,4 +1,4 @@
-﻿namespace weddingcraft_be.Models
+namespace weddingcraft_be.Models
 {
     public class Product
     {
@@ -7,6 +7,10 @@
         public string Description { get; set; } = "";
         public decimal Price { get; set; }
         public string ImageUrl { get; set; } = "";
+        
+        public Guid? VendorId { get; set; }
+        public User? Vendor { get; set; }
+
         public List<CustomizationOption> CustomizationOptions { get; set; } = new();
     }
 }

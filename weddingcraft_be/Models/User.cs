@@ -23,19 +23,16 @@ namespace weddingcraft_be.Models
 
         public string? Location { get; set; }
 
-        public string? Category { get; set; } // For Vendors
-
-        public string? Department { get; set; } // For Staff
-
         public double Rating { get; set; } = 0.0;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime? LastSeen { get; set; }
 
-        public List<Order> Orders { get; set; } = new();
+        public VendorProfile? VendorProfile { get; set; }
 
+        public List<Product> Products { get; set; } = new();
+        public List<Order> Orders { get; set; } = new();
         public List<AiRequest> AiRequests { get; set; } = new();
     }
-
 }

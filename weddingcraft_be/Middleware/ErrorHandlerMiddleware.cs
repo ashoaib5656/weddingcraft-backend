@@ -1,4 +1,5 @@
 using System.Text.Json;
+using weddingcraft_be.Common.Models;
 using weddingcraft_be.Exceptions;
 
 namespace weddingcraft_be.Middleware;
@@ -22,23 +23,23 @@ public class ErrorHandlerMiddleware
         }
         catch (AppException ex)
         {
-            // Domain exceptions — log at Warning (not Error, these are expected)
             _logger.LogWarning("Domain exception [{StatusCode}]: {Message}", ex.StatusCode, ex.Message);
 
             ctx.Response.StatusCode = ex.StatusCode;
             ctx.Response.ContentType = "application/json";
-            await ctx.Response.WriteAsync(
-                JsonSerializer.Serialize(new { error = ex.Message }));
+            
+            var response = ApiResponse<object>.Fail(ex.Message);
+            await ctx.Response.WriteAsync(JsonSerializer.Serialize(response));
         }
         catch (Exception ex)
         {
-            // Unexpected — log at Error with full stack trace
             _logger.LogError(ex, "Unhandled exception");
 
             ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
             ctx.Response.ContentType = "application/json";
-            await ctx.Response.WriteAsync(
-                JsonSerializer.Serialize(new { error = "An unexpected error occurred." }));
+
+            var response = ApiResponse<object>.Fail("An unexpected error occurred.");
+            await ctx.Response.WriteAsync(JsonSerializer.Serialize(response));
         }
     }
 }

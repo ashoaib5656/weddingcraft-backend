@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using weddingcraft_be.Data;
+using weddingcraft_be.Common.Models;
+using weddingcraft_be.Interfaces.Services;
 using weddingcraft_be.Models;
 
 namespace weddingcraft_be.Controllers;
@@ -11,44 +11,14 @@ namespace weddingcraft_be.Controllers;
 [Authorize(Roles = "Admin")]
 public class AdminLogsController : ControllerBase
 {
-    private readonly ApplicationDbContext _db;
-    public AdminLogsController(ApplicationDbContext db) => _db = db;
+    private readonly ILogService _logService;
+    public AdminLogsController(ILogService logService) => _logService = logService;
 
     [HttpGet]
-    public async Task<IActionResult> Get(string? level = null, string? endpoint = null, string? userEmail = null, int page = 1, int pageSize = 25)
+    public async Task<IActionResult> Get([FromQuery] PaginationFilter filter, [FromQuery] string? level = null, [FromQuery] string? endpoint = null, [FromQuery] string? userEmail = null)
     {
-        if (page < 1) page = 1;
-        if (pageSize < 1) pageSize = 25;
-        if (pageSize > 100) pageSize = 100;
+        var pagedLogs = await _logService.GetLogsAsync(filter, level, endpoint, userEmail);
 
-        var q = _db.Logs.AsQueryable();
-
-        if (!string.IsNullOrEmpty(level))
-            q = q.Where(l => l.Level == level);
-
-        if (!string.IsNullOrEmpty(endpoint))
-            q = q.Where(l => EF.Functions.ILike(l.Endpoint ?? "", $"%{endpoint}%"));
-
-        if (!string.IsNullOrEmpty(userEmail))
-            q = q.Where(l => l.UserEmail == userEmail);
-
-        var total = await q.CountAsync();
-        var items = await q
-            .OrderByDescending(l => l.Timestamp)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(l => new {
-                l.Id,
-                l.Timestamp,
-                l.Level,
-                l.Message,
-                l.Exception,
-                l.UserEmail,
-                l.Endpoint,
-                l.IpAddress
-            })
-            .ToListAsync();
-
-        return Ok(new { total, items });
+        return Ok(pagedLogs);
     }
 }

@@ -1,9 +1,13 @@
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using weddingcraft_be.Common.Models;
 using weddingcraft_be.Data;
 using weddingcraft_be.Dtos;
+using weddingcraft_be.Extensions;
+using weddingcraft_be.Interfaces.Services;
 using weddingcraft_be.Models;
 
 namespace weddingcraft_be.Controllers
@@ -13,154 +17,107 @@ namespace weddingcraft_be.Controllers
     [Authorize]
     public class UsersController : ControllerBase
     {
-        private readonly ApplicationDbContext _db;
+        private readonly IUserService _userService;
+        private readonly IMapper _mapper;
 
-        public UsersController(ApplicationDbContext db)
+        public UsersController(IUserService userService, IMapper mapper)
         {
-            _db = db;
+            _userService = userService;
+            _mapper = mapper;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] string? role)
+        public async Task<IActionResult> GetAll([FromQuery] PaginationFilter filter, [FromQuery] string? role)
         {
-            var query = _db.Users.AsNoTracking();
-            if (!string.IsNullOrEmpty(role))
-            {
-                query = query.Where(u => u.Role == role);
-            }
-
-            var users = await query
-                .Select(u => new UserDto
-                {
-                    Id = u.Id,
-                    Email = u.Email,
-                    Name = u.Name,
-                    Role = u.Role,
-                    PhoneNumber = u.PhoneNumber,
-                    Status = u.Status,
-                    Location = u.Location,
-                    Category = u.Category,
-                    Department = u.Department,
-                    Rating = u.Rating,
-                    CreatedAt = u.CreatedAt,
-                    LastSeen = u.LastSeen
-                })
-                .ToListAsync();
-
-            return Ok(users);
+            var pagedUsers = await _userService.GetAllAsync(filter, role);
+            return Ok(pagedUsers);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var user = await _db.Users
-                .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Id == id);
+            var user = await _userService.GetByIdAsync(id);
 
-            if (user == null) return NotFound();
+            if (user == null) 
+                return NotFound(ApiResponse<object>.Fail("User not found."));
 
-            return Ok(new UserDto
-            {
-                Id = user.Id,
-                Email = user.Email,
-                Name = user.Name,
-                Role = user.Role,
-                PhoneNumber = user.PhoneNumber,
-                Status = user.Status,
-                Location = user.Location,
-                Category = user.Category,
-                Department = user.Department,
-                Rating = user.Rating,
-                CreatedAt = user.CreatedAt,
-                LastSeen = user.LastSeen
-            });
+            var dto = _mapper.Map<UserDto>(user);
+
+            return Ok(ApiResponse<UserDto>.SuccessResponse(dto, "User details retrieved."));
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UserDto dto)
         {
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
-            if (user == null) return NotFound();
+            var user = await _userService.GetByIdAsync(id);
+            if (user == null) 
+                return NotFound(ApiResponse<object>.Fail("User not found."));
 
-            user.Name = dto.Name;
-            user.PhoneNumber = dto.PhoneNumber;
-            user.Status = dto.Status;
-            user.Location = dto.Location;
-            user.Category = dto.Category;
-            user.Department = dto.Department;
-
-            await _db.SaveChangesAsync();
-            return NoContent();
+            await _userService.UpdateAsync(id, dto);
+            return Ok(ApiResponse<object>.SuccessResponse(null!, "User updated successfully."));
         }
 
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
-            if (user == null) return NotFound();
+            var user = await _userService.GetByIdAsync(id);
+            if (user == null) 
+                return NotFound(ApiResponse<object>.Fail("User not found."));
 
-            _db.Users.Remove(user);
-            await _db.SaveChangesAsync();
-            return NoContent();
+            await _userService.DeleteAsync(id);
+            return Ok(ApiResponse<object>.SuccessResponse(null!, "User deleted successfully."));
         }
 
         [HttpGet("profile")]
         public async Task<IActionResult> GetProfile()
         {
-            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            var user = await _db.Users.FindAsync(userId);
-            if (user == null) return NotFound();
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
+            
+            var userId = Guid.Parse(userIdStr);
+            var user = await _userService.GetByIdAsync(userId);
+            if (user == null) return NotFound(ApiResponse<object>.Fail("Profile not found."));
 
-            return Ok(new UserDto
-            {
-                Id = user.Id,
-                Email = user.Email,
-                Name = user.Name,
-                Role = user.Role,
-                PhoneNumber = user.PhoneNumber,
-                Status = user.Status,
-                Location = user.Location,
-                Category = user.Category,
-                Department = user.Department,
-                Rating = user.Rating,
-                CreatedAt = user.CreatedAt,
-                LastSeen = user.LastSeen
-            });
+            var dto = _mapper.Map<UserDto>(user);
+
+            return Ok(ApiResponse<UserDto>.SuccessResponse(dto, "Profile retrieved."));
         }
 
         [HttpPut("profile")]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
         {
-            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            var user = await _db.Users.FindAsync(userId);
-            if (user == null) return NotFound();
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
 
-            user.Name = dto.Name;
-            user.Email = dto.Email;
-            user.PhoneNumber = dto.PhoneNumber;
-            user.Location = dto.Location;
+            var userId = Guid.Parse(userIdStr);
+            var user = await _userService.GetByIdAsync(userId);
+            if (user == null) return NotFound(ApiResponse<object>.Fail("Profile not found."));
 
-            await _db.SaveChangesAsync();
-            return NoContent();
+            await _userService.UpdateProfileAsync(userId, dto);
+            return Ok(ApiResponse<object>.SuccessResponse(null!, "Profile updated successfully."));
         }
 
         [HttpPut("change-password")]
-        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto, [FromServices] Microsoft.AspNetCore.Identity.IPasswordHasher<User> hasher)
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
         {
-            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            var user = await _db.Users.FindAsync(userId);
-            if (user == null) return NotFound();
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized();
 
-            var result = hasher.VerifyHashedPassword(user, user.PasswordHash!, dto.CurrentPassword);
-            if (result == Microsoft.AspNetCore.Identity.PasswordVerificationResult.Failed)
+            var userId = Guid.Parse(userIdStr);
+            try
             {
-                return BadRequest(new { message = "Invalid current password" });
+                await _userService.ChangePasswordAsync(userId, dto.CurrentPassword, dto.NewPassword);
+                return Ok(ApiResponse<object>.SuccessResponse(null!, "Password changed successfully."));
             }
-
-            user.PasswordHash = hasher.HashPassword(user, dto.NewPassword);
-            await _db.SaveChangesAsync();
-            return NoContent();
+            catch (KeyNotFoundException)
+            {
+                return NotFound(ApiResponse<object>.Fail("User not found."));
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return BadRequest(ApiResponse<object>.Fail("Invalid current password."));
+            }
         }
     }
-}
+}

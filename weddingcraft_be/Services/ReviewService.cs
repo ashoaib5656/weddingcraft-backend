@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using weddingcraft_be.Common.Models;
+using weddingcraft_be.Extensions;
 using weddingcraft_be.Interfaces.Repositories;
 using weddingcraft_be.Interfaces.Services;
 using weddingcraft_be.Models;
@@ -14,13 +16,13 @@ namespace weddingcraft_be.Services
             _reviewRepo = reviewRepo;
         }
 
-        public async Task<IEnumerable<Review>> GetAllAsync()
+        public async Task<PagedResponse<IEnumerable<Review>>> GetAllAsync(PaginationFilter filter)
         {
             return await _reviewRepo.GetQueryable()
                 .Include(r => r.User)
                 .AsNoTracking()
                 .OrderByDescending(r => r.CreatedAt)
-                .ToListAsync();
+                .ToPagedListAsync(filter);
         }
 
         public async Task<Review> CreateAsync(Review review)

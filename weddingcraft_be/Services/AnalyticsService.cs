@@ -31,14 +31,14 @@ namespace weddingcraft_be.Services
             };
         }
 
-        public async Task<object> GetRevenueGrowthAsync()
+        public Task<object> GetRevenueGrowthAsync()
         {
             // Simplified growth data for now, keeping it consistent with previous logic
-            return new
+            return Task.FromResult<object>(new
             {
                 categories = new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun" },
                 data = new[] { 60, 45, 75, 50, 90, 85 }
-            };
+            });
         }
     }
 }

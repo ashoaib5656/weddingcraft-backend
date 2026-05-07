@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using weddingcraft_be.Data;
@@ -11,9 +12,11 @@ using weddingcraft_be.Data;
 namespace weddingcraft_be.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260506094107_AddVendorIdToProduct")]
+    partial class AddVendorIdToProduct
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -548,9 +551,6 @@ namespace weddingcraft_be.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("BusinessName")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Category")
                         .HasColumnType("text");
 
                     b.Property<string>("Description")

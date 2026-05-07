@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using weddingcraft_be.Common.Models;
+using weddingcraft_be.Extensions;
 using weddingcraft_be.Interfaces.Repositories;
 using weddingcraft_be.Interfaces.Services;
 using weddingcraft_be.Models;
@@ -14,7 +16,7 @@ namespace weddingcraft_be.Services
             _orderRepo = orderRepo;
         }
 
-        public async Task<IEnumerable<Order>> GetByUserIdAsync(Guid userId, string role)
+        public async Task<PagedResponse<IEnumerable<Order>>> GetByUserIdAsync(Guid userId, string role, PaginationFilter filter)
         {
             var query = _orderRepo.GetQueryable()
                 .Include(o => o.User)
@@ -22,12 +24,27 @@ namespace weddingcraft_be.Services
                 .ThenInclude(i => i.Product)
                 .AsNoTracking();
 
-            if (role != "Admin")
+            if (role == "Customer")
             {
                 query = query.Where(o => o.UserId == userId);
             }
+            else if (role == "Vendor")
+            {
+                query = query.Where(o => o.VendorId == userId);
+            }
 
-            return await query.OrderByDescending(o => o.CreatedAt).ToListAsync();
+            return await query.OrderByDescending(o => o.CreatedAt).ToPagedListAsync(filter);
+        }
+
+        public async Task<PagedResponse<IEnumerable<Order>>> GetByVendorIdAsync(Guid vendorId, PaginationFilter filter)
+        {
+            return await _orderRepo.GetQueryable()
+                .Where(o => o.VendorId == vendorId)
+                .Include(o => o.User)
+                .Include(o => o.Items)
+                .ThenInclude(i => i.Product)
+                .OrderByDescending(o => o.CreatedAt)
+                .ToPagedListAsync(filter);
         }
 
         public async Task<Order?> GetByIdAsync(int id, Guid userId, string role)
@@ -39,9 +56,10 @@ namespace weddingcraft_be.Services
                 .AsNoTracking()
                 .FirstOrDefaultAsync(o => o.Id == id);
 
-            if (order != null && role != "Admin" && order.UserId != userId)
+            if (order != null && role != "Admin")
             {
-                return null;
+                if (role == "Customer" && order.UserId != userId) return null;
+                if (role == "Vendor" && order.VendorId != userId) return null;
             }
 
             return order;

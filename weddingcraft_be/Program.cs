@@ -50,6 +50,11 @@ builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 
+builder.Services.AddScoped<ILogRepository, LogRepository>();
+builder.Services.AddScoped<IReportRepository, ReportRepository>();
+builder.Services.AddScoped<IContactMessageRepository, ContactMessageRepository>();
+builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
+
 // ─── Redis ───────────────────────────────────────────────────────────────────
 
 var redisSettings = builder.Configuration.GetSection("Redis").Get<RedisSettings>() 
@@ -109,6 +114,7 @@ builder.Services.AddAuthentication(options =>
 
 // ─── Application Services ────────────────────────────────────────────────────
 
+builder.Services.AddAutoMapper(cfg => cfg.AddMaps(typeof(Program).Assembly));
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -119,6 +125,12 @@ builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+builder.Services.AddScoped<IUserService, UserService>();
+
+builder.Services.AddScoped<ILogService, LogService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IContactMessageService, ContactMessageService>();
+builder.Services.AddScoped<IChatService, ChatService>();
 
 // ─── SignalR ─────────────────────────────────────────────────────────────────
 

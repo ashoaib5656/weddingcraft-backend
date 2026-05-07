@@ -105,7 +105,7 @@ public class AuthService : IAuthService
             AccessToken = access,
             RefreshToken = newToken,
             Role = stored.User.Role,
-            Name = stored.User.Email.Split('@')[0],
+            Name = stored.User.Name ?? stored.User.Email.Split('@')[0],
             ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenMinutes)
         };
     }
@@ -170,7 +170,7 @@ public class AuthService : IAuthService
             AccessToken = token,
             RefreshToken = string.Empty,
             Role = user.Role,
-            Name = user.Email.Split('@')[0],
+            Name = user.Name ?? user.Email.Split('@')[0],
             ExpiresAt = DateTime.UtcNow // Placeholder as we don't easily have the original expiry without parsing more
         };
     }
@@ -293,7 +293,7 @@ public class AuthService : IAuthService
             AccessToken = access,
             RefreshToken = refreshToken,
             Role = user.Role,
-            Name = user.Email.Split('@')[0],
+            Name = user.Name ?? user.Email.Split('@')[0],
             ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenMinutes)
         };
     }

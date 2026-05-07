@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using weddingcraft_be.Common.Models;
+using weddingcraft_be.Extensions;
 using weddingcraft_be.Interfaces.Repositories;
 using weddingcraft_be.Interfaces.Services;
 using weddingcraft_be.Models;
@@ -14,9 +16,9 @@ namespace weddingcraft_be.Services
             _taskRepo = taskRepo;
         }
 
-        public async Task<IEnumerable<TaskItem>> GetAllAsync()
+        public async Task<PagedResponse<IEnumerable<TaskItem>>> GetAllAsync(PaginationFilter filter)
         {
-            return await _taskRepo.GetAllAsync();
+            return await _taskRepo.GetQueryable().ToPagedListAsync(filter);
         }
 
         public async Task<TaskItem> CreateAsync(TaskItem task)

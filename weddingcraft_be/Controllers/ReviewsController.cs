@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using weddingcraft_be.Common.Models;
 using weddingcraft_be.Interfaces.Services;
 using weddingcraft_be.Models;
 
@@ -19,9 +20,10 @@ namespace weddingcraft_be.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] PaginationFilter filter)
         {
-            return Ok(await _reviewService.GetAllAsync());
+            var pagedReviews = await _reviewService.GetAllAsync(filter);
+            return Ok(pagedReviews);
         }
 
         [HttpPost]

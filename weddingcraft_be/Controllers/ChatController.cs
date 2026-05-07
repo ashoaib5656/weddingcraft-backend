@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using weddingcraft_be.Data;
+using weddingcraft_be.Common.Models;
+using weddingcraft_be.Interfaces.Services;
 
 namespace weddingcraft_be.Controllers;
 
@@ -10,34 +10,14 @@ namespace weddingcraft_be.Controllers;
 [Authorize]
 public class ChatController : ControllerBase
 {
-    private readonly ApplicationDbContext _db;
+    private readonly IChatService _chatService;
 
-    public ChatController(ApplicationDbContext db) => _db = db;
+    public ChatController(IChatService chatService) => _chatService = chatService;
 
     [HttpGet("history")]
-    public async Task<IActionResult> History(int page = 1, int pageSize = 50)
+    public async Task<IActionResult> History([FromQuery] PaginationFilter filter)
     {
-        if (page < 1) page = 1;
-        if (pageSize < 1) pageSize = 1;
-        if (pageSize > 100) pageSize = 100;
-
-        var q = _db.ChatMessages.AsNoTracking().OrderByDescending(m => m.CreatedAt);
-        var total = await q.CountAsync();
-        var items = await q
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(m => new
-            {
-                m.Id,
-                m.UserId,
-                m.UserEmail,
-                m.ConversationId,
-                m.Message,
-                m.CreatedAt
-            })
-            .ToListAsync();
-
-        items.Reverse(); // oldest-first for UI
-        return Ok(new { total, items });
+        var pagedResponse = await _chatService.GetHistoryAsync(filter);
+        return Ok(pagedResponse);
     }
 }

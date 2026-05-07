@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using weddingcraft_be.Common.Models;
+using weddingcraft_be.Extensions;
 using weddingcraft_be.Interfaces.Repositories;
 using weddingcraft_be.Interfaces.Services;
 using weddingcraft_be.Models;
@@ -14,9 +16,9 @@ namespace weddingcraft_be.Services
             _inventoryRepo = inventoryRepo;
         }
 
-        public async Task<IEnumerable<InventoryItem>> GetAllAsync()
+        public async Task<PagedResponse<IEnumerable<InventoryItem>>> GetAllAsync(PaginationFilter filter)
         {
-            return await _inventoryRepo.GetAllAsync();
+            return await _inventoryRepo.GetQueryable().ToPagedListAsync(filter);
         }
 
         public async Task<InventoryItem> CreateAsync(InventoryItem item)

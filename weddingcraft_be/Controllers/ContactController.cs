@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using weddingcraft_be.Data;
+using weddingcraft_be.Common.Models;
+using weddingcraft_be.Interfaces.Services;
 using weddingcraft_be.Models;
 
 namespace weddingcraft_be.Controllers
@@ -10,37 +10,34 @@ namespace weddingcraft_be.Controllers
     [Route("api/[controller]")]
     public class ContactController : ControllerBase
     {
-        private readonly ApplicationDbContext _db;
+        private readonly IContactMessageService _contactService;
 
-        public ContactController(ApplicationDbContext db)
+        public ContactController(IContactMessageService contactService)
         {
-            _db = db;
+            _contactService = contactService;
         }
 
         [HttpPost]
         [AllowAnonymous]
         public async Task<IActionResult> SendMessage([FromBody] ContactMessage message)
         {
-            _db.ContactMessages.Add(message);
-            await _db.SaveChangesAsync();
+            await _contactService.CreateAsync(message);
             return Ok(new { message = "Message sent successfully" });
         }
 
         [HttpGet]
         [Authorize(Roles = "Admin,Manager")]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] PaginationFilter filter)
         {
-            return Ok(await _db.ContactMessages.AsNoTracking().OrderByDescending(m => m.CreatedAt).ToListAsync());
+            var pagedMessages = await _contactService.GetAllAsync(filter);
+            return Ok(pagedMessages);
         }
 
         [HttpPut("{id}/read")]
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> MarkAsRead(int id)
         {
-            var msg = await _db.ContactMessages.FindAsync(id);
-            if (msg == null) return NotFound();
-            msg.IsRead = true;
-            await _db.SaveChangesAsync();
+            await _contactService.MarkAsReadAsync(id);
             return NoContent();
         }
     }
