@@ -22,6 +22,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<TaskItem> TaskItems => Set<TaskItem>();
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<ContactMessage> ContactMessages => Set<ContactMessage>();
+    public DbSet<Booking> Bookings => Set<Booking>();
+    public DbSet<BookingStatusHistory> BookingStatusHistories => Set<BookingStatusHistory>();
+    public DbSet<VendorAvailability> VendorAvailabilities => Set<VendorAvailability>();
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -74,5 +77,30 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<LogEntry>()
             .HasIndex(l => l.Timestamp)
             .HasDatabaseName("IX_Logs_Timestamp");
+
+        // ─── Booking ──────────────────────────────────────────────────────────
+        modelBuilder.Entity<Booking>()
+            .HasOne(b => b.Customer)
+            .WithMany()
+            .HasForeignKey(b => b.CustomerId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Booking>()
+            .HasOne(b => b.Vendor)
+            .WithMany()
+            .HasForeignKey(b => b.VendorId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<BookingStatusHistory>()
+            .HasOne(h => h.Booking)
+            .WithMany(b => b.StatusHistory)
+            .HasForeignKey(h => h.BookingId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<VendorAvailability>()
+            .HasOne(va => va.Vendor)
+            .WithMany()
+            .HasForeignKey(va => va.VendorId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

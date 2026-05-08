@@ -131,6 +131,9 @@ builder.Services.AddScoped<ILogService, LogService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IContactMessageService, ContactMessageService>();
 builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IVendorAvailabilityService, VendorAvailabilityService>();
 
 // ─── SignalR ─────────────────────────────────────────────────────────────────
 
@@ -209,6 +212,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapHub<weddingcraft_be.Hubs.ChatHub>("/hubs/chat");
+app.MapHub<weddingcraft_be.Hubs.NotificationHub>("/hubs/notifications");
 app.MapControllers();
 
 app.Run();
